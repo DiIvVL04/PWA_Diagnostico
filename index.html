@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador</title>
+    <style>
+        #resultado{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:10px}
+        .card{border:1px solid #ddd;border-radius:8px;overflow:hidden}
+        .card img{width:100%;height:160px;object-fit:cover}
+        .card .body{padding:8px}
+        .card h4{margin:0 0 6px;font-size:16px}
+        .card button{padding:6px 10px;border:0;border-radius:6px;background:#3b82f6;color:#fff;cursor:pointer}
+        
+        #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:10px}
+        #modal .box{max-width:520px;width:100%;background:#fff;border-radius:10px;overflow:auto;max-height:80vh}
+        #modal header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee}
+        #modal header h3{margin:0;font-size:18px}
+        #modal .content{padding:12px}
+        #cerrar{background:#ef4444;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer}
+    </style>
+</head>
+<body>
+    <p>Buscador</p>
+    <input id="getCoctel">
+    <button id="buscar">Buscar</button>
+
+    <div id="resultado"></div>
+
+    <div id="modal">
+        <div class="box">
+            <header>
+                <h3 id="modal-titulo">instrucciones</h3>
+                <button id="cerrar">cerrar</button>
+            </header>
+            <div class="content" id="modal-contenido"></div>
+        </div>
+    </div>
+
+    <script>
+
+    let ultimo=[];
+    
+    const getCoctel = async (nombre) => {
+        const url = `https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(nombre)}`;
+        try{
+            const resultado = await fetch(url);
+            if(!resultado.ok){
+                throw new Error('error en la respuesta.');
+            }
+            const data = await resultado.json();
+            mostrar(data);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+    
+    const mostrar = (data) => {
+        const respuesta = document.getElementById('resultado');
+        respuesta.innerHTML = '';
+        ultimo = data.drinks || [];
+        if(!data.drinks){
+            console.log('no hay.');
+            return
+        }
+
+        const parte = document.createDocumentFragment();
+        data.drinks.forEach(drink => {
+            const card = document.createElement('div');
+            card.className='card';
+            card.innerHTML = `
+            <img src="${drink.strDrinkThumb}">
+            <div class='body'>
+            <h4>${drink.strDrink}</h4>
+            <button onclick="verInstrucciones('${drink.idDrink}')">Ver instrucciones</button>
+            </div>
+            `;
+            parte.appendChild(card);
+        });
+        respuesta.appendChild(parte);
+    }
+
+    const verInstrucciones = (id) => {
+    const a = ultimo.find(x => x.idDrink === id);
+    if(!a) return;
+
+    document.getElementById('modal-titulo').textContent = a.strDrink;
+    document.getElementById('modal-contenido').innerHTML = `
+      <h4>Instrucciones</h4>
+      <p>${a.strInstructionsES || 'no hay instrucciones.'}</p>
+    `;
+    abrirModal();
+  }
+
+  const modal = document.getElementById('modal');
+  const abrirModal = () => modal.style.display = 'flex';
+  const cerrarModal = () => modal.style.display = 'none';
+  document.getElementById('cerrar').addEventListener('click', cerrarModal);
+
+  document.getElementById('buscar').addEventListener('click', ()=>{
+    const nombre = document.getElementById('getCoctel').value.trim();
+    if(nombre) getCoctel(nombre);
+  });
+  document.getElementById('getCoctel').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){
+      const nombre = e.target.value.trim();
+      if(nombre) getCoctel(nombre);
+    }
+  });
+    
+    
+    /* fetch(url)
+    .then(response => {
+    if(!response.ok){
+        throw new Error('error en la respuesta.');
+    } return response.json();
+})
+    .then(data => console.log(data)); */
+</script>
+</body>
+</html>
